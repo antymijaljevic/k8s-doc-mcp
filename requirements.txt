@@ -1,0 +1,9 @@
+# Core dependencies
+fastapi
+uvicorn
+python-dotenv
+pydantic
+
+# Kubernetes documentation MCP server dependencies
+requests
+beautifulsoup4
