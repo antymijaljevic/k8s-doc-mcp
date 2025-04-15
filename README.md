@@ -17,7 +17,7 @@ pip install -r requirements.txt
 
 2. Run the server:
 ```bash
-python main.py
+python run_server.py
 ```
 
 The server will start on http://localhost:8000 by default.
@@ -49,6 +49,34 @@ Run the example client script to see how to use the Kubernetes documentation MCP
 python k8s_client_example.py
 ```
 
+## Sample Queries for Claude
+
+You can ask Claude questions about Kubernetes using natural language. Here are some examples:
+
+1. **Basic information about Kubernetes concepts:**
+   - "What is a Kubernetes Pod and how does it work?"
+   - "Explain what a Kubernetes Service is used for"
+   - "Tell me about Kubernetes Deployments"
+
+2. **Comparison queries:**
+   - "Compare Kubernetes Deployments vs StatefulSets"
+   - "What's the difference between a Service and an Ingress?"
+   - "How do ConfigMaps and Secrets differ in Kubernetes?"
+
+3. **Task-oriented requests:**
+   - "How do I create a Kubernetes ConfigMap and mount it to a Pod?"
+   - "Show me how to set up persistent storage in Kubernetes"
+   - "Explain how to expose a deployment using a service"
+
+4. **Architecture and best practices:**
+   - "Explain the main components of Kubernetes architecture"
+   - "What are the security best practices for Kubernetes?"
+   - "How should I structure my namespaces in Kubernetes?"
+
+5. **Finding related content:**
+   - "What should I read after learning about Kubernetes Pods?"
+   - "Show me topics related to Kubernetes storage"
+
 ## Integration with AI Assistants
 
 ### Claude Desktop Integration
@@ -59,18 +87,30 @@ Add this to your Claude Desktop configuration:
 {
   "mcpServers": {
     "k8s-docs-mcp": {
-      "command": "python3",
+      "command": "/opt/homebrew/bin/python3",
       "args": [
-        "/Users/amijaljevic/Downloads/k8s-doc-mcp/main.py"
+        "/path/to/k8s-doc-mcp/run_server.py"
       ],
       "env": {
         "PORT": "8000",
-        "HOST": "0.0.0.0"
+        "HOST": "0.0.0.0",
+        "TIMEOUT": "60",
+        "LOG_LEVEL": "DEBUG"
       }
     }
   }
 }
 ```
+
+### Free Up Port Before Starting
+
+To clear any processes using port 8000 before starting the server:
+
+```bash
+./start_mcp.sh
+```
+
+This script will kill any processes using port 8000 and provide you with the correct MCP configuration.
 
 ### Cursor Integration
 

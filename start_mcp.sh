@@ -1,16 +1,10 @@
 #!/bin/bash
 
 # Script to kill any processes using port 8000 and free it for MCP client
-# This script also supports using a custom port if 8000 is busy
+# This script can be used with the MCP client configuration
 
 # Default port
 PORT=8000
-
-# Check if a custom port was provided
-if [ -n "$1" ] && [[ "$1" =~ ^[0-9]+$ ]]; then
-  PORT=$1
-  echo "Using custom port: $PORT"
-fi
 
 echo "Checking for processes using port $PORT..."
 # Find processes using the port
@@ -41,8 +35,18 @@ if lsof -ti:$PORT >/dev/null; then
 else
   echo "Port $PORT is now free and available for the MCP client"
   echo ""
-  echo "Starting server with debug logging using run_server.py..."
-  
-  # Start the server in debug mode to see tool registration
-  LOG_LEVEL=DEBUG TIMEOUT=60 PORT=$PORT /opt/homebrew/bin/python3 run_server.py
+  echo "MCP client configuration:"
+  echo ""
+  echo '"k8s-docs-mcp": {'
+  echo '  "command": "/opt/homebrew/bin/python3",'
+  echo '  "args": ['
+  echo '    "/Users/amijaljevic/Downloads/k8s-doc-mcp/run_server.py"'
+  echo '  ],'
+  echo '  "env": {'
+  echo '    "PORT": "8000",'
+  echo '    "HOST": "0.0.0.0",'
+  echo '    "TIMEOUT": "60",'
+  echo '    "LOG_LEVEL": "DEBUG"'
+  echo '  }'
+  echo '}'
 fi 

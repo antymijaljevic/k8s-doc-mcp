@@ -3,10 +3,22 @@ import re
 import json
 import logging
 import requests
+import sys
 from bs4 import BeautifulSoup
 from typing import Dict, List, Any, Optional, Union
-from main import register_tool
+
+# No longer needed since tools/__init__.py will register the tools
+# import importlib.util
+# spec = importlib.util.spec_from_file_location("main", 
+#     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "main.py"))
+# main_module = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(main_module)
+# register_tool = main_module.register_tool
+
 from . import logger
+
+# Add debug logging for tool registration
+logger.info("Loading Kubernetes documentation tools...")
 
 # Base URL for Kubernetes documentation
 K8S_DOCS_BASE_URL = "https://kubernetes.io/docs"
@@ -116,7 +128,6 @@ def html_to_markdown(html_content: str) -> str:
     
     return md_content
 
-@register_tool("k8s_read_documentation")
 def read_documentation(url: str, max_length: int = 5000, start_index: int = 0) -> Dict[str, Any]:
     """
     Fetch and convert a Kubernetes documentation page to markdown format.
@@ -129,6 +140,7 @@ def read_documentation(url: str, max_length: int = 5000, start_index: int = 0) -
     Returns:
         Dict containing markdown content and metadata
     """
+    logger.info(f"Tool k8s_read_documentation called with URL: {url}")
     try:
         # Validate URL
         if not url.startswith(("https://kubernetes.io/docs", "http://kubernetes.io/docs")):
@@ -168,7 +180,6 @@ def read_documentation(url: str, max_length: int = 5000, start_index: int = 0) -
         logger.error(f"Error reading Kubernetes documentation: {str(e)}")
         return {"error": str(e)}
 
-@register_tool("k8s_search_documentation")
 def search_documentation(search_phrase: str, limit: int = 10) -> Dict[str, Any]:
     """
     Search Kubernetes documentation using a search phrase.
@@ -180,6 +191,7 @@ def search_documentation(search_phrase: str, limit: int = 10) -> Dict[str, Any]:
     Returns:
         Dict containing search results
     """
+    logger.info("Tool k8s_search_documentation called")
     try:
         # Use Kubernetes site search or Google CSE
         # Here we're simulating a search by directly querying the K8s site
@@ -249,7 +261,6 @@ def search_documentation(search_phrase: str, limit: int = 10) -> Dict[str, Any]:
         logger.error(f"Error searching Kubernetes documentation: {str(e)}")
         return {"error": str(e)}
 
-@register_tool("k8s_recommend")
 def recommend(url: str) -> Dict[str, Any]:
     """
     Get content recommendations for a Kubernetes documentation page.
@@ -260,6 +271,7 @@ def recommend(url: str) -> Dict[str, Any]:
     Returns:
         Dict containing recommended pages with URLs, titles, and context
     """
+    logger.info("Tool k8s_recommend called")
     try:
         # Validate URL
         if not url.startswith(("https://kubernetes.io/docs", "http://kubernetes.io/docs")):
@@ -349,4 +361,7 @@ def recommend(url: str) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"Error getting recommendations for Kubernetes documentation: {str(e)}")
-        return {"error": str(e)} 
+        return {"error": str(e)}
+
+# Log that tools were registered
+logger.info("Kubernetes documentation tools registered: k8s_read_documentation, k8s_search_documentation, k8s_recommend") 

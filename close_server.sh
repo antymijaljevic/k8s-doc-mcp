@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to kill any processes using port 8000 and free it for MCP client
-# This script also supports using a custom port if 8000 is busy
+# This script also supports using a random port if 8000 is busy
 
 # Default port
 PORT=8000
@@ -41,8 +41,19 @@ if lsof -ti:$PORT >/dev/null; then
 else
   echo "Port $PORT is now free and available for the MCP client"
   echo ""
-  echo "Starting server with debug logging using run_server.py..."
-  
-  # Start the server in debug mode to see tool registration
-  LOG_LEVEL=DEBUG TIMEOUT=60 PORT=$PORT /opt/homebrew/bin/python3 run_server.py
+  echo "You can now start the Claude Desktop app with the following MCP configuration:"
+  echo ""
+  echo '"k8s-docs-mcp": {'
+  echo '  "command": "/opt/homebrew/bin/python3",'
+  echo '  "args": ['
+  echo '    "/Users/amijaljevic/Downloads/k8s-doc-mcp/main.py"'
+  echo '  ],'
+  echo '  "env": {'
+  echo "    \"PORT\": \"$PORT\","
+  echo '    "HOST": "0.0.0.0",'
+  echo '    "TIMEOUT": "60"'
+  echo '  }'
+  echo '}'
+  echo ""
+  echo "Success! Your MCP client should now be able to connect properly."
 fi 

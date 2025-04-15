@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
+"""
+Improved server script to run the Kubernetes Documentation MCP Server
+This script avoids circular import issues by setting up the FastAPI app
+and registering tools separately.
+"""
 import os
+import sys
 import json
 import logging
-import sys
 from typing import Dict, List, Optional, Any, Union
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, Depends, Header
@@ -21,18 +26,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger("mcp_server")
 
-# Create FastAPI app
-app = FastAPI(title="Kubernetes Documentation MCP Server")
+# Initialize tool registry
+tool_registry = {}
 
-# CORS settings
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def register_tool(name):
+    """Decorator to register tools in the tool registry."""
+    def decorator(func):
+        logger.info(f"Registering tool: {name}")
+        tool_registry[name] = func
+        return func
+    return decorator
+
+# Import tools directly
+try:
+    from tools.kubernetes.documentation import read_documentation, search_documentation, recommend
+    
+    # Register tools manually
+    tool_registry["k8s_read_documentation"] = read_documentation
+    tool_registry["k8s_search_documentation"] = search_documentation
+    tool_registry["k8s_recommend"] = recommend
+    
+    logger.info(f"Successfully registered tools: {list(tool_registry.keys())}")
+except Exception as e:
+    logger.error(f"Error importing and registering tools: {str(e)}")
+    import traceback
+    logger.error(traceback.format_exc())
 
 # Define models
 class ToolParameter(BaseModel):
@@ -54,15 +72,18 @@ class ToolResponseItem(BaseModel):
 class ToolResponse(BaseModel):
     responses: List[ToolResponseItem]
 
-# Tool registry
-tool_registry = {}
+# Create FastAPI app
+app = FastAPI(title="Kubernetes Documentation MCP Server")
 
-# Tool decorator for registering tools
-def register_tool(name: str):
-    def decorator(func):
-        tool_registry[name] = func
-        return func
-    return decorator
+# CORS settings
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Basic security check if enabled
 async def verify_api_key(x_api_key: Optional[str] = Header(None)):
@@ -145,42 +166,22 @@ async def handle_raw_tool_call(request: Request, authorized: bool = Depends(veri
 @app.get("/tools/list")
 async def list_tools(authorized: bool = Depends(verify_api_key)):
     """List all available tools."""
+    logger.info(f"Available tools: {list(tool_registry.keys())}")
     return {"tools": list(tool_registry.keys())}
-
-# Import tools after defining register_tool
-import tools
-
-# Verify that expected tools are available
-def verify_tools():
-    expected_tools = ["k8s_read_documentation", "k8s_search_documentation", "k8s_recommend"]
-    missing_tools = [tool for tool in expected_tools if tool not in tool_registry]
-    
-    if missing_tools:
-        logger.error(f"MISSING TOOLS: {missing_tools}")
-        logger.error("Make sure tools/kubernetes/documentation.py is properly importing main.register_tool")
-    else:
-        logger.info("All expected Kubernetes tools are registered properly")
-    
-    return len(missing_tools) == 0
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
     host = os.getenv("HOST", "0.0.0.0")
-    timeout = int(os.getenv("TIMEOUT", "30"))  # Default timeout is 30 seconds
-    
-    # Verify tools before starting
-    tools_verified = verify_tools()
-    if not tools_verified:
-        logger.warning("Server starting with missing tools. Functionality may be limited.")
+    timeout = int(os.getenv("TIMEOUT", "60"))  # Default timeout is 60 seconds
     
     logger.info(f"Starting MCP server on {host}:{port} with timeout {timeout}s")
     
     # Configure uvicorn with timeout settings
     uvicorn.run(
-        "main:app", 
+        "run_server:app", 
         host=host, 
         port=port, 
         reload=True,
         timeout_keep_alive=timeout,  # Keep-alive timeout
         timeout_graceful_shutdown=timeout  # Graceful shutdown timeout
-    )
+    ) 
