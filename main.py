@@ -152,5 +152,16 @@ import tools
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
     host = os.getenv("HOST", "0.0.0.0")
-    logger.info(f"Starting MCP server on {host}:{port}")
-    uvicorn.run("main:app", host=host, port=port, reload=True)
+    timeout = int(os.getenv("TIMEOUT", "30"))  # Default timeout is 30 seconds
+    
+    logger.info(f"Starting MCP server on {host}:{port} with timeout {timeout}s")
+    
+    # Configure uvicorn with timeout settings
+    uvicorn.run(
+        "main:app", 
+        host=host, 
+        port=port, 
+        reload=True,
+        timeout_keep_alive=timeout,  # Keep-alive timeout
+        timeout_graceful_shutdown=timeout  # Graceful shutdown timeout
+    )
