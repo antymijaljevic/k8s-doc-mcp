@@ -61,7 +61,7 @@ Add this to your Claude Desktop configuration:
     "k8s-docs-mcp": {
       "command": "python3",
       "args": [
-        "/path/to/this/repo/main.py"
+        "/Users/amijaljevic/Downloads/k8s-doc-mcp/main.py"
       ],
       "env": {
         "PORT": "8000",
