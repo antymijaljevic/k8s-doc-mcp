@@ -1,117 +1,66 @@
-# Kubernetes Documentation MCP Server
+# Python MPC Server Sample
 
-A Model Context Protocol (MCP) server for accessing Kubernetes documentation, designed for integration with AI assistants like Claude.
+A simple sticky notes application built with the MCP (Model Context Protocol) Python SDK.
 
 ## Features
 
-- **Read Documentation**: Fetch and convert Kubernetes documentation pages to markdown format
-- **Search Documentation**: Search Kubernetes documentation using keywords
-- **Recommend Related Content**: Get content recommendations for Kubernetes documentation pages
+- Add sticky notes
+- Read all saved notes
+- Get the latest note
+- Generate note summaries
 
-## Setup
+## Installation
 
-1. Install dependencies:
+1. Install the `uv` package manager:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. Initialize the project and install dependencies:
+   ```bash
+   uv init .
+   uv add "mcp[cli]"
+   ```
+
+3. Install the MCP server:
+   ```bash
+   uv run mcp install main.py
+   ```
+
+## Usage
+
+Start the MCP server:
 ```bash
-pip install -r requirements.txt
+uv run python main.py
 ```
 
-2. Run the server:
-```bash
-python run_server.py
-```
-
-The server will start on http://localhost:8000 by default.
-
-## Using the Kubernetes Documentation Tools
-
-This MCP server provides three main tools for working with Kubernetes documentation:
-
-1. **k8s_read_documentation**: Fetches a Kubernetes documentation page and converts it to markdown
-   - Parameters:
-     - `url`: URL of the K8s documentation page (must be from kubernetes.io/docs)
-     - `max_length`: Maximum number of characters to return (default: 5000)
-     - `start_index`: Starting character index for pagination (default: 0)
-
-2. **k8s_search_documentation**: Searches the Kubernetes documentation
-   - Parameters:
-     - `search_phrase`: The search query
-     - `limit`: Maximum number of results to return (default: 10)
-
-3. **k8s_recommend**: Gets content recommendations for a K8s documentation page
-   - Parameters:
-     - `url`: URL of the K8s documentation page to get recommendations for
-
-## Example Client
-
-Run the example client script to see how to use the Kubernetes documentation MCP server:
-
-```bash
-python k8s_client_example.py
-```
-
-## Sample Queries for Claude
-
-You can ask Claude questions about Kubernetes using natural language. Here are some examples:
-
-1. **Basic information about Kubernetes concepts:**
-   - "What is a Kubernetes Pod and how does it work?"
-   - "Explain what a Kubernetes Service is used for"
-   - "Tell me about Kubernetes Deployments"
-
-2. **Comparison queries:**
-   - "Compare Kubernetes Deployments vs StatefulSets"
-   - "What's the difference between a Service and an Ingress?"
-   - "How do ConfigMaps and Secrets differ in Kubernetes?"
-
-3. **Task-oriented requests:**
-   - "How do I create a Kubernetes ConfigMap and mount it to a Pod?"
-   - "Show me how to set up persistent storage in Kubernetes"
-   - "Explain how to expose a deployment using a service"
-
-4. **Architecture and best practices:**
-   - "Explain the main components of Kubernetes architecture"
-   - "What are the security best practices for Kubernetes?"
-   - "How should I structure my namespaces in Kubernetes?"
-
-5. **Finding related content:**
-   - "What should I read after learning about Kubernetes Pods?"
-   - "Show me topics related to Kubernetes storage"
-
-## Integration with AI Assistants
-
-### Claude Desktop Integration
-
-Add this to your Claude Desktop configuration:
-
+This will add json defintion to Claude Desktop (to MPC Host/Client) like this and run server in background.
 ```json
 {
   "mcpServers": {
-    "k8s-docs-mcp": {
-      "command": "/opt/homebrew/bin/python3",
+    "AI Sticky Notes": {
+      "command": "uv",
       "args": [
-        "/path/to/k8s-doc-mcp/run_server.py"
-      ],
-      "env": {
-        "PORT": "8000",
-        "HOST": "0.0.0.0",
-        "TIMEOUT": "60",
-        "LOG_LEVEL": "DEBUG"
-      }
+        "run",
+        "--with",
+        "mcp[cli]",
+        "mcp",
+        "run",
+        "~/my-repositories/my-projects/python-mpc-server-sample/main.py"
+      ]
     }
   }
 }
 ```
 
-### Free Up Port Before Starting
+### Available Functions
 
-To clear any processes using port 8000 before starting the server:
+- `add_note(message)`: Add a new note
+- `read_notes()`: Read all saved notes
+- `get_latest_note()`: Get the most recent note
+- `note_summary_prompt()`: Generate a prompt for summarizing notes
 
-```bash
-./start_mcp.sh
-```
+## Resources
 
-This script will kill any processes using port 8000 and provide you with the correct MCP configuration.
-
-### Cursor Integration
-
-Configure Cursor to connect to this MCP server by setting the API endpoint to `http://localhost:8000`.
+- [MCP Python SDK Documentation](https://github.com/modelcontextprotocol/python-sdk)
+- [uv Package Manager](https://docs.astral.sh/uv/getting-started/installation/)

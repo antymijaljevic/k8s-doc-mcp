@@ -1,186 +1,84 @@
-#!/usr/bin/env python3
+from mcp.server.fastmcp import FastMCP
 import os
-import json
-import logging
-import sys
-from typing import Dict, List, Optional, Any, Union
-from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, Depends, Header
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-import uvicorn
 
-# Load environment variables
-load_dotenv()
+# Create an MCP server
+mcp = FastMCP("AI Sticky Notes")
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO")),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    filename=os.getenv("LOG_FILE"),  # None means log to stdout
-)
-logger = logging.getLogger("mcp_server")
+NOTES_FILE = os.path.join(os.path.dirname(__file__), "notes.txt")
 
-# Create FastAPI app
-app = FastAPI(title="Kubernetes Documentation MCP Server")
+def ensure_file():
+    if not os.path.exists(NOTES_FILE):
+        with open(NOTES_FILE, "w") as f:
+            f.write("")
 
-# CORS settings
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@mcp.tool()
+def add_note(message: str) -> str:
+    """
+    Append a new note to the sticky note file.
 
-# Define models
-class ToolParameter(BaseModel):
-    name: str
-    value: Any
+    Sample:
+      Can you add a note about saying '`Hajduk zivi vjecno'?
 
-class ToolCall(BaseModel):
-    name: str
-    parameters: List[ToolParameter]
+    Args:
+        message (str): The note content to be added.
 
-class ToolRequest(BaseModel):
-    tool_calls: List[ToolCall]
-    
-class ToolResponseItem(BaseModel):
-    tool_name: str
-    output: Any
-    error: Optional[str] = None
+    Returns:
+        str: Confirmation message indicating the note was saved.
+    """
+    ensure_file()
+    with open(NOTES_FILE, "a") as f:
+        f.write(message + "\n")
+    return "Note saved!"
 
-class ToolResponse(BaseModel):
-    responses: List[ToolResponseItem]
+@mcp.tool()
+def read_notes() -> str:
+    """
+    Read and return all notes from the sticky note file.
 
-# Tool registry
-tool_registry = {}
+    Sample:
+        Can you read my notes?
 
-# Tool decorator for registering tools
-def register_tool(name: str):
-    def decorator(func):
-        tool_registry[name] = func
-        return func
-    return decorator
+    Returns:
+        str: All notes as a single string separated by line breaks.
+             If no notes exist, a default message is returned.
+    """
+    ensure_file()
+    with open(NOTES_FILE, "r") as f:
+        content = f.read().strip()
+    return content or "No notes yet."
 
-# Basic security check if enabled
-async def verify_api_key(x_api_key: Optional[str] = Header(None)):
-    if os.getenv("ENABLE_AUTH", "false").lower() == "true":
-        expected_key = os.getenv("API_KEY")
-        if not expected_key or x_api_key != expected_key:
-            raise HTTPException(status_code=401, detail="Invalid API key")
-    return True
+@mcp.resource("notes://latest")
+def get_latest_note() -> str:
+    """
+    Get the most recently added note from the sticky note file.
 
-# Routes
-@app.get("/")
-async def root():
-    return {"message": "Kubernetes Documentation MCP Server", "version": "0.1.0"}
+    Sample:
+      Share context with Clauden > Choose an integration > Notes://latest
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+    Returns:
+        str: The last note entry. If no notes exist, a default message is returned.
+    """
+    ensure_file()
+    with open(NOTES_FILE, "r") as f:
+        lines = f.readlines()
+    return lines[-1].strip() if lines else "No notes yet."
 
-@app.post("/tool", response_model=ToolResponse)
-async def handle_tool_call(request: ToolRequest, authorized: bool = Depends(verify_api_key)):
-    responses = []
-    
-    for tool_call in request.tool_calls:
-        tool_name = tool_call.name
-        
-        if tool_name not in tool_registry:
-            responses.append(ToolResponseItem(
-                tool_name=tool_name,
-                output=None,
-                error=f"Tool '{tool_name}' not found"
-            ))
-            continue
-            
-        tool_func = tool_registry[tool_name]
-        params = {param.name: param.value for param in tool_call.parameters}
-        
-        try:
-            result = tool_func(**params)
-            responses.append(ToolResponseItem(
-                tool_name=tool_name,
-                output=result
-            ))
-        except Exception as e:
-            logger.error(f"Error executing tool {tool_name}: {str(e)}")
-            responses.append(ToolResponseItem(
-                tool_name=tool_name,
-                output=None,
-                error=str(e)
-            ))
-    
-    return ToolResponse(responses=responses)
+@mcp.prompt()
+def note_summary_prompt() -> str:
+    """
+    Generate a prompt asking the AI to summarize all current notes.
 
-# Raw request handler (alternative for compatibility)
-@app.post("/raw_tool")
-async def handle_raw_tool_call(request: Request, authorized: bool = Depends(verify_api_key)):
-    try:
-        data = await request.json()
-        tool_name = data.get("name")
-        parameters = data.get("parameters", {})
-        
-        if tool_name not in tool_registry:
-            raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
-            
-        tool_func = tool_registry[tool_name]
-        result = tool_func(**parameters)
-        
-        return {
-            "tool_name": tool_name,
-            "output": result,
-            "error": None
-        }
-    except Exception as e:
-        logger.error(f"Error in raw tool call: {str(e)}")
-        return {
-            "tool_name": tool_name if 'tool_name' in locals() else "unknown",
-            "output": None,
-            "error": str(e)
-        }
+    Sample:
+      Share context with Clauden > Choose an integration > note_summary_prompt
 
-@app.get("/tools/list")
-async def list_tools(authorized: bool = Depends(verify_api_key)):
-    """List all available tools."""
-    return {"tools": list(tool_registry.keys())}
+    Returns:
+        str: A prompt string that includes all notes and asks for a summary.
+             If no notes exist, a message will be shown indicating that.
+    """
+    ensure_file()
+    with open(NOTES_FILE, "r") as f:
+        content = f.read().strip()
+    if not content:
+        return "There are no notes yet."
 
-# Import tools after defining register_tool
-import tools
-
-# Verify that expected tools are available
-def verify_tools():
-    expected_tools = ["k8s_read_documentation", "k8s_search_documentation", "k8s_recommend"]
-    missing_tools = [tool for tool in expected_tools if tool not in tool_registry]
-    
-    if missing_tools:
-        logger.error(f"MISSING TOOLS: {missing_tools}")
-        logger.error("Make sure tools/kubernetes/documentation.py is properly importing main.register_tool")
-    else:
-        logger.info("All expected Kubernetes tools are registered properly")
-    
-    return len(missing_tools) == 0
-
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", "8000"))
-    host = os.getenv("HOST", "0.0.0.0")
-    timeout = int(os.getenv("TIMEOUT", "30"))  # Default timeout is 30 seconds
-    
-    # Verify tools before starting
-    tools_verified = verify_tools()
-    if not tools_verified:
-        logger.warning("Server starting with missing tools. Functionality may be limited.")
-    
-    logger.info(f"Starting MCP server on {host}:{port} with timeout {timeout}s")
-    
-    # Configure uvicorn with timeout settings
-    uvicorn.run(
-        "main:app", 
-        host=host, 
-        port=port, 
-        reload=True,
-        timeout_keep_alive=timeout,  # Keep-alive timeout
-        timeout_graceful_shutdown=timeout  # Graceful shutdown timeout
-    )
+    return f"Summarize the current notes: {content}"
