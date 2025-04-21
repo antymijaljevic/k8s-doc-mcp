@@ -1,13 +1,11 @@
-# Python MPC Server Sample
+# Kubernetes Documentation MCP Server
 
-A simple sticky notes application built with the MCP (Model Context Protocol) Python SDK.
+A Kubernetes documentation assistant built with the MCP (Model Context Protocol) Python SDK.
 
 ## Features
 
-- Add sticky notes
-- Read all saved notes
-- Get the latest note
-- Generate note summaries
+- Fetch and convert Kubernetes documentation to Markdown format
+- Get related/recommended documentation pages
 
 ## Installation
 
@@ -19,7 +17,7 @@ A simple sticky notes application built with the MCP (Model Context Protocol) Py
 2. Initialize the project and install dependencies:
    ```bash
    uv init .
-   uv add "mcp[cli]"
+   uv add "mcp[cli]" requests beautifulsoup4 markdown
    ```
 
 3. Install the MCP server:
@@ -34,11 +32,11 @@ Start the MCP server:
 uv run python main.py
 ```
 
-This will add json defintion to Claude Desktop (to MPC Host/Client) like this and run server in background.
+This will add json definition to Claude Desktop (to MPC Host/Client) like this and run server in background.
 ```json
 {
   "mcpServers": {
-    "AI Sticky Notes": {
+    "k8s-doc": {
       "command": "uv",
       "args": [
         "run",
@@ -46,21 +44,37 @@ This will add json defintion to Claude Desktop (to MPC Host/Client) like this an
         "mcp[cli]",
         "mcp",
         "run",
-        "~/my-repositories/my-projects/python-mpc-server-sample/main.py"
+        "~/my-repositories/my-projects/k8s-doc-mcp/main.py"
       ]
     }
   }
 }
 ```
 
-### Available Functions
+### Available Tools
 
-- `add_note(message)`: Add a new note
-- `read_notes()`: Read all saved notes
-- `get_latest_note()`: Get the most recent note
-- `note_summary_prompt()`: Generate a prompt for summarizing notes
+- `read_documentation(url)`: Fetch and convert a Kubernetes documentation page to Markdown format
+- `recommend(url)`: Get recommended Kubernetes documentation pages related to a specified URL
+
+### Examples
+
+1. read_documentation
+Access and understand the content of specific Kubernetes documentation pages.
+
+How to https://kubernetes.io/docs/tasks/tls/certificate-issue-client-csr/?
+How to https://kubernetes.io/docs/tasks/administer-cluster/cluster-upgrade/?
+
+
+2. recommend
+Find other pages related to a topic, typically starting from a page you've just read or are interested in.
+
+"Can you recommend other pages related to this URL: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/?"
+"What other documentation pages are related to the one about Deployments (https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)?"
+"Based on the information about Services, what other pages might be relevant? (Page: https://kubernetes.io/docs/concepts/services-networking/service/)"
+"Explore related topics starting from the documentation on Pods (https://kubernetes.io/docs/concepts/workloads/pods/)."
 
 ## Resources
 
 - [MCP Python SDK Documentation](https://github.com/modelcontextprotocol/python-sdk)
 - [uv Package Manager](https://docs.astral.sh/uv/getting-started/installation/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
