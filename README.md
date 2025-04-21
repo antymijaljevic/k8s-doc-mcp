@@ -44,7 +44,7 @@ This will add json definition to Claude Desktop (to MPC Host/Client) like this a
         "mcp[cli]",
         "mcp",
         "run",
-        "~/my-repositories/my-projects/k8s-doc-mcp/main.py"
+        "/<path-to>/k8s-doc-mcp/main.py"
       ]
     }
   }
